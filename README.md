@@ -7,7 +7,7 @@ market breadth, macro risk regimes, and systematic signal generation.
 
 ## 🌐 Macro Risk Regime Map
 
-![Macro Regime](assets/macro_regime_example.png)
+![Macro Regime](assets/SPX_regime_map_example.png)
 
 **Purpose**
 Classifies the market into Risk-On, Slowdown, and Risk-Off regimes
@@ -24,7 +24,7 @@ based on normalized growth impulses.
 ---
 ## 🌐 SKFI Buy Signal + Macro Risk Regime
 
-![Macro Regime](assets/SKFI_buy_example.png)
+![Macro Regime](assets/SPX_SKFI_buy_example.png)
 
 **Purpose**
 Generates regime-aware SKFI buy signals by adapting oversold thresholds
