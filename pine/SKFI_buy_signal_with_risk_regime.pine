@@ -1,1 +1,77 @@
+//@version=5
+indicator("SKFI Buy Signal + Macro Risk Regime", overlay=true)
+
+// ======================================================
+// ===================== SKFI INPUT =====================
+// ======================================================
+skfiSymbol = input.symbol("INDEX:SKFI", "SKFI Symbol")
+
+// Pull SKFI OPEN (important)
+skfiOpen = request.security(skfiSymbol, timeframe.period, open)
+
+// ======================================================
+// =============== MACRO RISK REGIME MAP ================
+// ======================================================
+
+// Growth proxy
+growthSource = input.source(close, "Growth Proxy Source")
+trendLen     = input.int(63, "Trend Lookback", minval=10)
+slowdownLvl  = input.float(-50.0, "Slowdown Threshold (%)")
+
+// ------------------ Growth Impulse ------------------
+roc = ta.roc(growthSource, trendLen)
+highestROC = ta.highest(math.abs(roc), trendLen)
+growthImpulse = highestROC != 0 ? (roc / highestROC) * 100 : 0
+
+// ------------------ Trend Reset ------------------
+trendDir   = growthImpulse > 0 ? 1 : -1
+trendReset = ta.change(trendDir)
+
+growthAdj =
+     trendReset
+     ? (trendDir > 0 ? 100 : -100)
+     : growthImpulse
+
+// ------------------ Regime FSM ------------------
+var int regime = 0
+//  1 = Risk-On
+//  0 = Slowdown
+// -1 = Risk-Off
+
+if trendReset
+    regime := growthAdj > 0 ? 1 : -1
+else
+    if regime == -1
+        regime := growthAdj > 0 ? 1 : growthAdj > slowdownLvl ? 0 : -1
+    else if regime == 0
+        regime := growthAdj > 0 ? 1 : growthAdj <= slowdownLvl ? -1 : 0
+    else
+        regime := growthAdj <= 0 ? -1 : 1
+
+// ======================================================
+// ================= SIGNAL CONDITIONS ==================
+// ======================================================
+
+// Threshold logic
+riskOnBuy     = regime == 1 and skfiOpen <= 20
+nonRiskOnBuy  = regime == -1 and skfiOpen <= 5
+
+buySignal = riskOnBuy or nonRiskOnBuy
+
+// ======================================================
+// ===================== PLOTTING =======================
+// ======================================================
+
+// Background regime colors
+bgcolor(regime == 1 ? color.new(color.green, 85) : regime == 0 ? color.new(color.yellow, 85) : color.new(color.red, 85))
+
+// Green up triangles
+plotshape(buySignal, title="SKFI Buy Signal", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
+
+// ======================================================
+// ====================== ALERTS ========================
+// ======================================================
+alertcondition(riskOnBuy, title="SKFI Buy (Risk-On)", message="SKFI OPEN ≤ 20 while in Risk-On regime")
+
+alertcondition(nonRiskOnBuy, title="SKFI Buy (Non Risk-On)", message="SKFI OPEN ≤ 5 while NOT in Risk-On regime")
 
